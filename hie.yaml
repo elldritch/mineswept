@@ -1,4 +1,7 @@
 cradle:
   cabal:
+    - path: "src"
+      component: "lib:mineswept"
+
     - path: "cmd/mineswept/Main.hs"
       component: "mineswept:exe:mineswept"
