@@ -35,7 +35,7 @@ Games are stored in a basic file format. Games are generated with 1 frame (the i
   - Height
   - Total buried mines
   - RNG seed
-  - `mineswept` version
+  - `mineswept` data format version
 - Then, divider
 - Then, each turn has a frame (line separated), separated by dividers
   - Game status, one of:
