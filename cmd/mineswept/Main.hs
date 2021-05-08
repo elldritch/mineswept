@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Data.Time (getCurrentTime)
-import Mineswept.Game (Parameters (..), initialGame, step, Action (..))
+import Mineswept.Game (Action (..), Parameters (..), initialGame, step)
 
 params :: Parameters
 params =

@@ -19,9 +19,6 @@ import Math.Geometry.GridMap (toGrid)
 import Math.Geometry.GridMap qualified as GridMap
 import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap)
 
--- Hmm, should this be an _octagonal_ grid or a _square_ grid?
--- Flood fill for revealed 0 tiles is square, but mine counting is octagonal.
--- Maybe do _both_, as fields, and then provide two "around" accessors?
 data Grid a = Grid
   { squareGrid :: LGridMap RectSquareGrid a,
     octGrid :: LGridMap RectOctGrid a
