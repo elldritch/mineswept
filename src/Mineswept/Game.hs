@@ -1,5 +1,3 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Mineswept.Game
   ( Parameters (..),
     Minefield,
@@ -19,11 +17,12 @@ where
 import Control.Monad.Random (evalRand, mkStdGen)
 import Data.IntSet qualified as IntSet
 import Data.List (find)
+import Data.List.NonEmpty (NonEmpty (..), (<|))
 import Data.Maybe (fromJust, isJust)
-import Data.Sequence.NonEmpty (NESeq ((:<||)), (<|))
-import Data.Sequence.NonEmpty qualified as NESeq
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Data.Time (UTCTime)
-import Mineswept.Grid (Grid (..))
+import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
 import System.Random.Shuffle (shuffleM)
 
@@ -37,6 +36,7 @@ data Parameters = Parameters
   deriving (Show)
 
 newtype Mine = Mine Bool
+  deriving (Enum, Eq)
 
 instance Show Mine where
   show (Mine True) = "M"
@@ -46,15 +46,13 @@ type Minefield = Grid Mine
 
 makeMinefield :: Parameters -> Minefield
 makeMinefield Parameters {width, height, seed, mineCount} =
-  case grid of
-    Just g -> g
-    Nothing -> error "makeMinefield: impossible: malformed grid"
+  Grid.fromList (width, height) mines
   where
     rng = mkStdGen seed
     positions = [0 .. width * height - 1]
     shuffled = evalRand (shuffleM positions) rng
     minePositions = IntSet.fromList $ take mineCount shuffled
-    grid = Grid.fromList (width, height) $ take (width * height) $ fmap (Mine . (`IntSet.member` minePositions)) [0 ..]
+    mines = take (width * height) $ fmap (Mine . (`IntSet.member` minePositions)) [0 ..]
 
 data Status
   = Playing
@@ -77,16 +75,17 @@ instance Show Square where
 
 data Frame = Frame
   { status :: Status,
-    created :: UTCTime,
-    squares :: Grid Square
+    squares :: Grid Square,
+    created :: UTCTime
   }
   deriving (Show)
 
 makeFrame :: Grid Square -> UTCTime -> Frame
-makeFrame g@Grid {cells} ts = Frame status ts g
+makeFrame g ts = Frame status g ts
   where
-    exploded = find (== Exploded) cells
-    unrevealed = find (== Unrevealed) cells
+    squares = Grid.elems g
+    exploded = find (== Exploded) squares
+    unrevealed = find (== Unrevealed) squares
     status
       | isJust exploded = Lost
       | isJust unrevealed = Playing
@@ -95,10 +94,7 @@ makeFrame g@Grid {cells} ts = Frame status ts g
 initialFrame :: (Int, Int) -> UTCTime -> Frame
 initialFrame (width, height) = makeFrame squares
   where
-    squares' = Grid.fromList (width, height) $ replicate (width * height) Unrevealed
-    squares = case squares' of
-      Just g -> g
-      Nothing -> error "initialFrame: impossible: malformed grid"
+    squares = Grid.fromList (width, height) $ replicate (width * height) Unrevealed
 
 data Game = Game
   { width :: Int,
@@ -106,30 +102,65 @@ data Game = Game
     seed :: Int,
     version :: Int,
     mines :: Minefield,
-    frames :: NESeq Frame
+    frames :: NonEmpty Frame
   }
+  deriving (Show)
 
 initialGame :: Parameters -> UTCTime -> Game
-initialGame p@Parameters {width, height, seed} ts =
+initialGame params@Parameters {width, height, seed} ts =
   Game
     { width,
       height,
       seed,
       version = 1,
-      mines = makeMinefield p,
-      frames = NESeq.singleton $ initialFrame (width, height) ts
+      mines = makeMinefield params,
+      frames = initialFrame (width, height) ts :| []
     }
 
 data Action
   = Dig
   | Flag
+  deriving (Eq)
 
-step :: Game -> (Int, Int) -> Action -> UTCTime -> Game
-step g@Game {frames = fs@(Frame {squares} :<|| _)} (x, y) Dig ts =
-  undefined
-step g@Game {frames = fs@(Frame {squares} :<|| _)} (x, y) Flag ts =
-  g {frames = f <| fs}
+step :: Game -> (Int, Int) -> Action -> UTCTime -> Maybe Game
+step game@Game {width, height, frames = frames@(Frame {squares} :| _), mines} (x, y) action ts
+  | x < 0 = Nothing
+  | x >= width = Nothing
+  | y < 0 = Nothing
+  | y >= height = Nothing
+  | otherwise = Just $ game {frames = makeFrame nextGrid ts <| frames}
   where
-    g' = Grid.set (x, y) Flagged squares
-    f = makeFrame (fromJust g') ts
-step Game {frames = _} _ _ _ = error "step: impossible: missing pattern"
+    nextGrid = case action of
+      Dig -> dug
+      Flag -> flagged
+
+    (Mine mine) = fromJust $ Grid.get (x, y) mines
+    fillZeros = fromJust $ fill mines (x, y) (== Mine False)
+    dug =
+      if mine
+        then Grid.set (x, y) Exploded squares
+        else foldr (\k g -> Grid.set k (Revealed $ fromJust $ adjacentMines mines k) g) squares fillZeros
+
+    flagged = Grid.set (x, y) Flagged squares
+
+adjacentMines :: Minefield -> (Int, Int) -> Maybe Int
+adjacentMines mines k = case Grid.get k mines of
+  Just _ -> Just $ sum $ fromEnum . snd <$> Grid.around8 mines k
+  Nothing -> Nothing
+
+fill :: Grid a -> (Int, Int) -> (a -> Bool) -> Maybe [(Int, Int)]
+fill g k f = case Grid.get k g of
+  Just _ -> Just $ fill' Set.empty k
+  Nothing -> Nothing
+  where
+    fill' :: Set (Int, Int) -> (Int, Int) -> [(Int, Int)]
+    fill' seen k'
+      | k' `Set.member` seen = []
+      | not passedFilter = []
+      -- Infinite loop bug here? I need to update `seen` map on _every_ iteration, otherwise tree explodes - need queue somehow.
+      | otherwise = k' : concatMap recurse around
+      where
+        v = fromJust $ Grid.get k' g
+        passedFilter = f v
+        around = fst <$> Grid.around4 g k'
+        recurse = fill' $ Set.insert k' seen

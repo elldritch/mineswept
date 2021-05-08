@@ -1,21 +1,27 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Main (main) where
 
 import Data.Time (getCurrentTime)
-import Mineswept.Game (Parameters (..), initialFrame, makeMinefield)
+import Mineswept.Game (Parameters (..), initialGame, step, Action (..))
+
+params :: Parameters
+params =
+  Parameters
+    { width = 30,
+      height = 16,
+      version = 1,
+      mineCount = 99,
+      seed = 0
+    }
 
 main :: IO ()
 main = do
-  let w = 30
-  let h = 16
-  let params = Parameters w h 99 0 1
-  let mines = makeMinefield params
-  print mines
   now <- getCurrentTime
-  let frame = initialFrame (w, h) now
-  print frame
+  let game = initialGame params now
+  print game
+  let next = step game (1, 1) Flag now
+  print next
+  let dug = step game (1, 1) Dig now
+  print dug
 
 supportsVersion :: Parameters -> Bool
 supportsVersion Parameters {version} = case version of

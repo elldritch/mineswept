@@ -34,6 +34,7 @@ common lang
     DeriveGeneric
     DeriveLift
     DeriveTraversable
+    DuplicateRecordFields
     EmptyCase
     EmptyDataDeriving
     ExistentialQuantification
@@ -75,10 +76,12 @@ library
   exposed-modules:
     Mineswept.Game
     Mineswept.Grid
+    Mineswept.Minefield
 
   hs-source-dirs:  src
   build-depends:
     , containers           ^>=0.6.4.1
+    , grid                 ^>=7.8.14
     , MonadRandom          ^>=0.5.3
     , nonempty-containers  ^>=0.3.4.1
     , random               ^>=1.2.0
