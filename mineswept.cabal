@@ -44,6 +44,7 @@ common lang
     GADTSyntax
     GeneralizedNewtypeDeriving
     HexFloatLiterals
+    ImportQualifiedPost
     InstanceSigs
     KindSignatures
     MultiParamTypeClasses
@@ -56,13 +57,12 @@ common lang
     RankNTypes
     ScopedTypeVariables
     StandaloneDeriving
+    StandaloneKindSignatures
     StrictData
     TupleSections
     TypeApplications
     TypeOperators
     TypeSynonymInstances
-    ImportQualifiedPost
-    StandaloneKindSignatures
 
   ghc-options:
     -Wall -Wincomplete-uni-patterns -Wcompat
@@ -75,6 +75,7 @@ library
   -- cabal-fmt: expand src
   exposed-modules:
     Mineswept.Game
+    Mineswept.Graph
     Mineswept.Grid
     Mineswept.Minefield
 
@@ -83,8 +84,6 @@ library
     , containers           ^>=0.6.4.1
     , grid                 ^>=7.8.14
     , MonadRandom          ^>=0.5.3
-    , nonempty-containers  ^>=0.3.4.1
-    , random               ^>=1.2.0
     , random-shuffle       ^>=0.0.4
     , time                 ^>=1.11.1.2
 

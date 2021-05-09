@@ -1,15 +1,16 @@
 module Mineswept.Minefield
   ( Minefield,
+    Tile (..),
     Parameters (..),
     makeMinefield,
     get,
-    reachableZeros,
+    reveal,
   )
 where
 
 import Control.Monad.Random (evalRand, mkStdGen)
-import Data.Graph (Graph, Vertex)
-import Data.IntSet qualified as IntSet
+import Data.Set qualified as Set
+import Mineswept.Graph (LGraph, makeLGraph, reachable)
 import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
 import System.Random.Shuffle (shuffleM)
@@ -17,21 +18,19 @@ import System.Random.Shuffle (shuffleM)
 data Tile
   = Mine
   | Hint Int
+  deriving (Eq, Ord)
 
 instance Show Tile where
   show Mine = "M"
   show (Hint n) = if n == 0 then " " else show n
 
-data LabelledGraph a = LabelledGraph
-  { graph :: Graph,
-    labelFromVertex :: Vertex -> (a, [a]),
-    vertexFromLabel :: a -> Maybe Vertex
-  }
-
 data Minefield = Minefield
   { grid :: Grid Tile,
-    zeroGraph :: LabelledGraph (Int, Int)
+    zerosGraph :: LGraph (Int, Int)
   }
+
+instance Show Minefield where
+  show (Minefield g _) = show g
 
 data Parameters = Parameters
   { width :: Int,
@@ -45,27 +44,32 @@ data Parameters = Parameters
 makeMinefield :: Parameters -> Minefield
 makeMinefield Parameters {width, height, seed, mineCount} =
   Minefield
-    { grid = Grid.fromList (width, height) mines,
-      zeroGraph = undefined
+    { grid = hinted,
+      zerosGraph = zerosGraph
     }
   where
     rng = mkStdGen seed
-    positions = [0 .. width * height - 1]
+    positions = (\i -> (i `mod` width, i `div` width)) <$> [0 .. width * height - 1]
     shuffled = evalRand (shuffleM positions) rng
-    minePositions = IntSet.fromList $ take mineCount shuffled
-    -- TODO: "Mine" needs to be "\x -> if x then Mine else Hint ?", need to pre-compute hint numbers.
-    mines = take (width * height) $ fmap (Mine . (`IntSet.member` minePositions)) [0 ..]
+    (mined, empty) = splitAt mineCount shuffled
+    unhinted = Grid.fromIndexedList (width, height) $ ((,Mine) <$> mined) ++ ((,Hint (-1)) <$> empty)
+    hinted = Grid.mapWithKey (hintFor unhinted) unhinted
+    hintFor grid pos val = case val of
+      Hint _ -> Hint $ length $ filter ((== Mine) . snd) $ Grid.around8 grid pos
+      Mine -> Mine
+    zeros = fmap fst $ filter ((== Hint 0) . snd) $ Grid.elems hinted
+    zeroGraphEdgesFor grid pos = fmap fst $ filter ((== Hint 0) . snd) $ Grid.around4 grid pos
+    zerosGraph = makeLGraph $ (\pos -> (pos, zeroGraphEdgesFor hinted pos)) <$> zeros
 
-get :: Minefield -> (Int, Int) -> Tile
-get minefield (x, y) = undefined
-
-reachableZeros :: Minefield -> (Int, Int) -> [(Int, Int)]
-reachableZeros minefield (x, y) = undefined
+get :: (Int, Int) -> Minefield -> Maybe Tile
+get pos Minefield {grid} = Grid.get pos grid
 
 -- Either reveal 1 mine or all the revealed blocks
-dig :: Minefield -> (Int, Int) -> [((Int, Int), Tile)]
-dig = undefined
-
--- Reveal all checked blocks (including 0 flooded)
-check :: Minefield -> (Int, Int) -> [((Int, Int), Tile)]
-check = undefined
+reveal :: (Int, Int) -> Minefield -> Maybe [((Int, Int), Tile)]
+reveal pos Minefield {grid, zerosGraph} = do
+  spot <- Grid.get pos grid
+  case spot of
+    Hint 0 -> do
+      rs <- reachable zerosGraph pos
+      pure $ Set.toList $ Set.fromList $ concat $ Grid.around8 grid <$> rs
+    _ -> Just [(pos, spot)]

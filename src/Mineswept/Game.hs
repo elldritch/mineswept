@@ -1,58 +1,25 @@
 module Mineswept.Game
-  ( Parameters (..),
-    Minefield,
-    makeMinefield,
-    Status (..),
+  ( Status (..),
     Square (..),
     Frame (..),
     makeFrame,
     initialFrame,
     Game (..),
+    Parameters (..),
     initialGame,
     Action (..),
     step,
   )
 where
 
-import Control.Monad.Random (evalRand, mkStdGen)
-import Data.IntSet qualified as IntSet
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty (..), (<|))
-import Data.Maybe (fromJust, isJust)
-import Data.Set (Set)
-import Data.Set qualified as Set
+import Data.Maybe (isJust)
 import Data.Time (UTCTime)
 import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
-import System.Random.Shuffle (shuffleM)
-
-data Parameters = Parameters
-  { width :: Int,
-    height :: Int,
-    mineCount :: Int,
-    seed :: Int,
-    version :: Int
-  }
-  deriving (Show)
-
-newtype Mine = Mine Bool
-  deriving (Enum, Eq)
-
-instance Show Mine where
-  show (Mine True) = "M"
-  show (Mine False) = " "
-
-type Minefield = Grid Mine
-
-makeMinefield :: Parameters -> Minefield
-makeMinefield Parameters {width, height, seed, mineCount} =
-  Grid.fromList (width, height) mines
-  where
-    rng = mkStdGen seed
-    positions = [0 .. width * height - 1]
-    shuffled = evalRand (shuffleM positions) rng
-    minePositions = IntSet.fromList $ take mineCount shuffled
-    mines = take (width * height) $ fmap (Mine . (`IntSet.member` minePositions)) [0 ..]
+import Mineswept.Minefield (Minefield, Parameters (..), Tile (..), makeMinefield, reveal)
+import Mineswept.Minefield qualified as Minefield
 
 data Status
   = Playing
@@ -83,7 +50,7 @@ data Frame = Frame
 makeFrame :: Grid Square -> UTCTime -> Frame
 makeFrame g ts = Frame status g ts
   where
-    squares = Grid.elems g
+    squares = snd <$> Grid.elems g
     exploded = find (== Exploded) squares
     unrevealed = find (== Unrevealed) squares
     status
@@ -101,7 +68,7 @@ data Game = Game
     height :: Int,
     seed :: Int,
     version :: Int,
-    mines :: Minefield,
+    minefield :: Minefield,
     frames :: NonEmpty Frame
   }
   deriving (Show)
@@ -113,7 +80,7 @@ initialGame params@Parameters {width, height, seed} ts =
       height,
       seed,
       version = 1,
-      mines = makeMinefield params,
+      minefield = makeMinefield params,
       frames = initialFrame (width, height) ts :| []
     }
 
@@ -123,44 +90,23 @@ data Action
   deriving (Eq)
 
 step :: Game -> (Int, Int) -> Action -> UTCTime -> Maybe Game
-step game@Game {width, height, frames = frames@(Frame {squares} :| _), mines} (x, y) action ts
-  | x < 0 = Nothing
-  | x >= width = Nothing
-  | y < 0 = Nothing
-  | y >= height = Nothing
-  | otherwise = Just $ game {frames = makeFrame nextGrid ts <| frames}
+step game@Game {frames = frames@(Frame {squares} :| _), minefield} pos action ts = do
+  nextGrid <- makeNextGrid
+  Just $ game {frames = makeFrame nextGrid ts <| frames}
   where
-    nextGrid = case action of
+    makeNextGrid = case action of
       Dig -> dug
-      Flag -> flagged
+      Flag -> Just flagged
 
-    (Mine mine) = fromJust $ Grid.get (x, y) mines
-    fillZeros = fromJust $ fill mines (x, y) (== Mine False)
-    dug =
-      if mine
-        then Grid.set (x, y) Exploded squares
-        else foldr (\k g -> Grid.set k (Revealed $ fromJust $ adjacentMines mines k) g) squares fillZeros
+    uncover (p, tile) grid = case tile of
+      Mine -> Grid.set p Exploded grid
+      Hint h -> Grid.set p (Revealed h) grid
 
-    flagged = Grid.set (x, y) Flagged squares
+    dug = do
+      tile <- Minefield.get pos minefield
+      revealed <- case tile of
+        Mine -> Just [(pos, tile)]
+        Hint _ -> reveal pos minefield
+      Just $ foldr uncover squares revealed
 
-adjacentMines :: Minefield -> (Int, Int) -> Maybe Int
-adjacentMines mines k = case Grid.get k mines of
-  Just _ -> Just $ sum $ fromEnum . snd <$> Grid.around8 mines k
-  Nothing -> Nothing
-
-fill :: Grid a -> (Int, Int) -> (a -> Bool) -> Maybe [(Int, Int)]
-fill g k f = case Grid.get k g of
-  Just _ -> Just $ fill' Set.empty k
-  Nothing -> Nothing
-  where
-    fill' :: Set (Int, Int) -> (Int, Int) -> [(Int, Int)]
-    fill' seen k'
-      | k' `Set.member` seen = []
-      | not passedFilter = []
-      -- Infinite loop bug here? I need to update `seen` map on _every_ iteration, otherwise tree explodes - need queue somehow.
-      | otherwise = k' : concatMap recurse around
-      where
-        v = fromJust $ Grid.get k' g
-        passedFilter = f v
-        around = fst <$> Grid.around4 g k'
-        recurse = fill' $ Set.insert k' seen
+    flagged = Grid.set pos Flagged squares
