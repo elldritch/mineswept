@@ -55,6 +55,7 @@ common lang
     PolyKinds
     PostfixOperators
     RankNTypes
+    RecordWildCards
     ScopedTypeVariables
     StandaloneDeriving
     StandaloneKindSignatures

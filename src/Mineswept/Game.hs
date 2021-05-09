@@ -12,8 +12,9 @@ module Mineswept.Game
   )
 where
 
-import Data.List (find)
+import Data.List (find, intercalate)
 import Data.List.NonEmpty (NonEmpty (..), (<|))
+import Data.List.NonEmpty qualified as NE
 import Data.Maybe (isJust)
 import Data.Time (UTCTime)
 import Mineswept.Grid (Grid)
@@ -36,19 +37,34 @@ data Square
 
 instance Show Square where
   show Unrevealed = "?"
-  show (Revealed n) = show n
+  show (Revealed n) = if n == 0 then " " else show n
   show Flagged = "F"
   show Exploded = "X"
 
 data Frame = Frame
   { status :: Status,
     squares :: Grid Square,
+    lastMove :: Action,
     created :: UTCTime
   }
-  deriving (Show)
 
-makeFrame :: Grid Square -> UTCTime -> Frame
-makeFrame g ts = Frame status g ts
+{- ORMOLU_DISABLE -}
+instance Show Frame where
+  show Frame{..} =
+    "Turn {\n"
+    ++ "  status: " ++ show status ++ "\n"
+    ++ "  last move: " ++ show lastMove ++ "\n"
+    ++ "  timestamp: " ++ show created ++ "\n"
+    ++ "  squares: {\n"
+    ++ indent 4 (show squares) ++ "\n"
+    ++ "  }\n"
+    ++ "}\n"
+    where
+      indent depth s = intercalate "\n" $ (\line -> replicate depth ' ' ++ line) <$> lines s
+{- ORMOLU_ENABLE -}
+
+makeFrame :: Grid Square -> Action -> UTCTime -> Frame
+makeFrame g a ts = Frame status g a ts
   where
     squares = snd <$> Grid.elems g
     exploded = find (== Exploded) squares
@@ -59,7 +75,7 @@ makeFrame g ts = Frame status g ts
       | otherwise = Won
 
 initialFrame :: (Int, Int) -> UTCTime -> Frame
-initialFrame (width, height) = makeFrame squares
+initialFrame (width, height) = makeFrame squares Start
   where
     squares = Grid.fromList (width, height) $ replicate (width * height) Unrevealed
 
@@ -71,7 +87,25 @@ data Game = Game
     minefield :: Minefield,
     frames :: NonEmpty Frame
   }
-  deriving (Show)
+
+{- ORMOLU_DISABLE -}
+instance Show Game where
+  show Game {..} =
+    "Game {\n"
+    ++ "  width: " ++ show width ++ "\n"
+    ++ "  height: " ++ show height ++ "\n"
+    ++ "  seed: " ++ show seed ++ "\n"
+    ++ "  version: " ++ show version ++ "\n"
+    ++ "  minefield: {\n"
+    ++ indent 4 (show minefield) ++ "\n"
+    ++ "  }\n"
+    ++ "  turns: {\n"
+    ++ indent 4 (concat $ show <$> NE.reverse frames) ++ "\n"
+    ++ "  }\n"
+    ++ "}"
+    where
+      indent depth s = intercalate "\n" $ (\line -> replicate depth ' ' ++ line) <$> lines s
+{- ORMOLU_ENABLE -}
 
 initialGame :: Parameters -> UTCTime -> Game
 initialGame params@Parameters {width, height, seed} ts =
@@ -85,28 +119,31 @@ initialGame params@Parameters {width, height, seed} ts =
     }
 
 data Action
-  = Dig
-  | Flag
-  deriving (Eq)
+  = Start
+  | Dig (Int, Int)
+  | Flag (Int, Int)
+  deriving (Eq, Show)
 
-step :: Game -> (Int, Int) -> Action -> UTCTime -> Maybe Game
-step game@Game {frames = frames@(Frame {squares} :| _), minefield} pos action ts = do
+step :: Game -> Action -> UTCTime -> Maybe Game
+step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = do
   nextGrid <- makeNextGrid
-  Just $ game {frames = makeFrame nextGrid ts <| frames}
+  Just $ game {frames = makeFrame nextGrid action ts <| frames}
   where
     makeNextGrid = case action of
-      Dig -> dug
-      Flag -> Just flagged
+      Dig pos -> dug pos
+      Flag pos -> Just $ flagged pos
+      Start -> error "step: impossible: Start is an invalid step action"
 
     uncover (p, tile) grid = case tile of
       Mine -> Grid.set p Exploded grid
       Hint h -> Grid.set p (Revealed h) grid
 
-    dug = do
+    dug pos = do
       tile <- Minefield.get pos minefield
       revealed <- case tile of
         Mine -> Just [(pos, tile)]
+        -- FIXME: bug - never reveal flagged tiles, even when 0-adjacent
         Hint _ -> reveal pos minefield
       Just $ foldr uncover squares revealed
 
-    flagged = Grid.set pos Flagged squares
+    flagged pos = Grid.set pos Flagged squares

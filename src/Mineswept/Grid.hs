@@ -41,14 +41,16 @@ fromIndexedList (width, height) vs =
     }
 
 instance Show a => Show (Grid a) where
-  show (Grid gm _) = x6
+  show (Grid gm _) = s
     where
-      x1 = sortOn (\((_, y), _) -> y) $ GridMap.toList gm
-      x2 = second show <$> x1
-      x3 = groupBy (\((_, b), _) ((_, d), _) -> b == d) x2
-      x4 = (fmap . fmap) snd x3
-      x5 = concat <$> x4
-      x6 = intercalate "\n" x5
+      indexOrder = sortOn (\((_, y), _) -> y) $ sortOn (\((x, _), _) -> x) $ GridMap.toList gm
+      shown = second show <$> indexOrder
+      rows = groupBy (\((_, b), _) ((_, d), _) -> b == d) shown
+      tileRows = (fmap . fmap) snd rows
+      rowLines = concat <$> tileRows
+      outline = (\line -> "|" ++ line ++ "|") <$> rowLines
+      edge = "+" ++ replicate (length $ head rows) '-' ++ "+\n"
+      s = edge ++ intercalate "\n" outline ++ "\n" ++ edge
 
 elems :: Grid a -> [((Int, Int), a)]
 elems (Grid g _) = (\pos -> (pos, fromJust $ GridMap.lookup pos g)) <$> GridMap.keys g
