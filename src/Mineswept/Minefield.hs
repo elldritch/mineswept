@@ -5,6 +5,7 @@ module Mineswept.Minefield
     makeMinefield,
     get,
     reveal,
+    gridOf,
   )
 where
 
@@ -13,24 +14,28 @@ import Data.Set qualified as Set
 import Mineswept.Graph (LGraph, makeLGraph, reachable)
 import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
+import Mineswept.Internal.PShow (PShow (..))
 import System.Random.Shuffle (shuffleM)
 
 data Tile
   = Mine
   | Hint Int
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
-instance Show Tile where
-  show Mine = "M"
-  show (Hint n) = if n == 0 then " " else show n
+instance PShow Tile where
+  pshow Mine = "M"
+  pshow (Hint n) = if n == 0 then " " else show n
 
 data Minefield = Minefield
   { grid :: Grid Tile,
     zerosGraph :: LGraph (Int, Int)
   }
 
-instance Show Minefield where
-  show (Minefield g _) = show g
+gridOf :: Minefield -> Grid Tile
+gridOf (Minefield g _) = g
+
+instance PShow Minefield where
+  pshow (Minefield g _) = pshow g
 
 data Parameters = Parameters
   { width :: Int,

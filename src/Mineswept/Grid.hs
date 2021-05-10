@@ -20,11 +20,13 @@ import Math.Geometry.Grid.Square (RectSquareGrid, rectSquareGrid)
 import Math.Geometry.GridMap (toGrid)
 import Math.Geometry.GridMap qualified as GridMap
 import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap, lazyGridMapIndexed)
+import Mineswept.Internal.PShow (PShow (..))
 
 data Grid a = Grid
   { squareGrid :: LGridMap RectSquareGrid a,
     octGrid :: LGridMap RectOctGrid a
   }
+  deriving (Show, Eq)
 
 fromList :: (Int, Int) -> [v] -> Grid v
 fromList (width, height) vs =
@@ -40,11 +42,11 @@ fromIndexedList (width, height) vs =
       octGrid = lazyGridMapIndexed (rectOctGrid height width) vs
     }
 
-instance Show a => Show (Grid a) where
-  show (Grid gm _) = s
+instance PShow a => PShow (Grid a) where
+  pshow (Grid gm _) = s
     where
       indexOrder = sortOn (\((_, y), _) -> y) $ sortOn (\((x, _), _) -> x) $ GridMap.toList gm
-      shown = second show <$> indexOrder
+      shown = second pshow <$> indexOrder
       rows = groupBy (\((_, b), _) ((_, d), _) -> b == d) shown
       tileRows = (fmap . fmap) snd rows
       rowLines = concat <$> tileRows

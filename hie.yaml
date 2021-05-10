@@ -3,5 +3,8 @@ cradle:
     - path: "src"
       component: "lib:mineswept"
 
+    - path: "test"
+      component: "mineswept:test:tests"
+
     - path: "cmd/mineswept/Main.hs"
       component: "mineswept:exe:mineswept"

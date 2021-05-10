@@ -3,6 +3,7 @@ module Main (main) where
 import Data.Maybe (fromJust)
 import Data.Time (getCurrentTime)
 import Mineswept.Game (Action (..), Parameters (..), initialGame, step)
+import Mineswept.Internal.PShow (pshow)
 
 params :: Parameters
 params =
@@ -17,12 +18,13 @@ params =
 main :: IO ()
 main = do
   ts <- getCurrentTime
-  print $ play ts
+  putStrLn $ pshow $ play ts
   where
     play ts = fromJust $ do
       let g1 = initialGame params ts
       g2 <- step g1 (Flag (1, 1)) ts
-      step g2 (Dig (0, 1)) ts
+      g3 <- step g2 (Dig (0, 1)) ts
+      step g3 (Dig (2, 0)) ts
 
 supportsVersion :: Parameters -> Bool
 supportsVersion Parameters {version} = case version of

@@ -78,23 +78,38 @@ library
     Mineswept.Game
     Mineswept.Graph
     Mineswept.Grid
+    Mineswept.Internal.PShow
     Mineswept.Minefield
 
   hs-source-dirs:  src
   build-depends:
-    , containers           ^>=0.6.4.1
-    , grid                 ^>=7.8.14
-    , MonadRandom          ^>=0.5.3
-    , random-shuffle       ^>=0.0.4
-    , time                 ^>=1.11.1.2
+    , containers      ^>=0.6.4.1
+    , grid            ^>=7.8.14
+    , MonadRandom     ^>=0.5.3
+    , random-shuffle  ^>=0.0.4
+    , time            ^>=1.11.1.2
+
+test-suite tests
+  import:         lang
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+
+  -- cabal-fmt: expand test -Spec
+  other-modules:
+    Mineswept.GameSpec
+    Mineswept.MinefieldSpec
+
+  hs-source-dirs: test
+  build-depends:
+    , hspec      ^>=2.7.10
+    , mineswept
+    , time       ^>=1.11.1.2
 
 executable mineswept
-  import:           lang
-  main-is:          Main.hs
+  import:         lang
+  main-is:        Main.hs
+  hs-source-dirs: cmd/mineswept
   build-depends:
     , base       ^>=4.14.1.0
     , mineswept
     , time       ^>=1.11.1.2
-
-  hs-source-dirs:   cmd/mineswept
-  default-language: Haskell2010

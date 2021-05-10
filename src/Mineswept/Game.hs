@@ -19,6 +19,7 @@ import Data.Maybe (isJust)
 import Data.Time (UTCTime)
 import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
+import Mineswept.Internal.PShow (PShow (..))
 import Mineswept.Minefield (Minefield, Parameters (..), Tile (..), makeMinefield, reveal)
 import Mineswept.Minefield qualified as Minefield
 
@@ -35,11 +36,11 @@ data Square
   | Exploded
   deriving (Eq)
 
-instance Show Square where
-  show Unrevealed = "?"
-  show (Revealed n) = if n == 0 then " " else show n
-  show Flagged = "F"
-  show Exploded = "X"
+instance PShow Square where
+  pshow Unrevealed = "?"
+  pshow (Revealed n) = if n == 0 then " " else show n
+  pshow Flagged = "F"
+  pshow Exploded = "X"
 
 data Frame = Frame
   { status :: Status,
@@ -48,19 +49,20 @@ data Frame = Frame
     created :: UTCTime
   }
 
+indent :: Int -> String -> String
+indent depth s = intercalate "\n" $ (\line -> replicate depth ' ' ++ line) <$> lines s
+
 {- ORMOLU_DISABLE -}
-instance Show Frame where
-  show Frame{..} =
-    "Turn {\n"
+instance PShow Frame where
+  pshow Frame{..} =
+       "Turn {\n"
     ++ "  status: " ++ show status ++ "\n"
     ++ "  last move: " ++ show lastMove ++ "\n"
     ++ "  timestamp: " ++ show created ++ "\n"
     ++ "  squares: {\n"
-    ++ indent 4 (show squares) ++ "\n"
+    ++ indent 4 (pshow squares) ++ "\n"
     ++ "  }\n"
     ++ "}\n"
-    where
-      indent depth s = intercalate "\n" $ (\line -> replicate depth ' ' ++ line) <$> lines s
 {- ORMOLU_ENABLE -}
 
 makeFrame :: Grid Square -> Action -> UTCTime -> Frame
@@ -89,22 +91,20 @@ data Game = Game
   }
 
 {- ORMOLU_DISABLE -}
-instance Show Game where
-  show Game {..} =
-    "Game {\n"
+instance PShow Game where
+  pshow Game {..} =
+       "Game {\n"
     ++ "  width: " ++ show width ++ "\n"
     ++ "  height: " ++ show height ++ "\n"
     ++ "  seed: " ++ show seed ++ "\n"
     ++ "  version: " ++ show version ++ "\n"
     ++ "  minefield: {\n"
-    ++ indent 4 (show minefield) ++ "\n"
+    ++ indent 4 (pshow minefield) ++ "\n"
     ++ "  }\n"
     ++ "  turns: {\n"
-    ++ indent 4 (concat $ show <$> NE.reverse frames) ++ "\n"
+    ++ indent 4 (concat $ pshow <$> NE.reverse frames) ++ "\n"
     ++ "  }\n"
     ++ "}"
-    where
-      indent depth s = intercalate "\n" $ (\line -> replicate depth ' ' ++ line) <$> lines s
 {- ORMOLU_ENABLE -}
 
 initialGame :: Parameters -> UTCTime -> Game
@@ -130,15 +130,15 @@ step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = d
   Just $ game {frames = makeFrame nextGrid action ts <| frames}
   where
     makeNextGrid = case action of
-      Dig pos -> dug pos
-      Flag pos -> Just $ flagged pos
+      Dig pos -> dig pos
+      Flag pos -> Just $ flag pos
       Start -> error "step: impossible: Start is an invalid step action"
 
     uncover (p, tile) grid = case tile of
       Mine -> Grid.set p Exploded grid
       Hint h -> Grid.set p (Revealed h) grid
 
-    dug pos = do
+    dig pos = do
       tile <- Minefield.get pos minefield
       revealed <- case tile of
         Mine -> Just [(pos, tile)]
@@ -146,4 +146,4 @@ step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = d
         Hint _ -> reveal pos minefield
       Just $ foldr uncover squares revealed
 
-    flagged pos = Grid.set pos Flagged squares
+    flag pos = Grid.set pos Flagged squares
