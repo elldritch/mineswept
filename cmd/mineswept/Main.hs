@@ -2,8 +2,10 @@ module Main (main) where
 
 import Data.Maybe (fromJust)
 import Data.Time (getCurrentTime)
+import Mineswept.CLI (argparser)
 import Mineswept.Game (Action (..), Parameters (..), initialGame, step)
 import Mineswept.Internal.PShow (pshow)
+import Options.Applicative (execParser)
 
 params :: Parameters
 params =
@@ -17,6 +19,7 @@ params =
 
 main :: IO ()
 main = do
+  args <- execParser argparser
   ts <- getCurrentTime
   putStrLn $ pshow $ play ts
   where

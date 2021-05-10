@@ -110,8 +110,12 @@ test-suite tests
 executable mineswept
   import:         lang
   main-is:        Main.hs
+
+  -- cabal-fmt: expand cmd/mineswept -Main
+  other-modules:  Mineswept.CLI
   hs-source-dirs: cmd/mineswept
   build-depends:
-    , base       ^>=4.14.1.0
+    , base                  ^>=4.14.1.0
     , mineswept
-    , time       ^>=1.11.1.2
+    , optparse-applicative  ^>=0.16.1
+    , time                  ^>=1.11.1.2

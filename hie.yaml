@@ -6,5 +6,5 @@ cradle:
     - path: "test"
       component: "mineswept:test:tests"
 
-    - path: "cmd/mineswept/Main.hs"
+    - path: "cmd/mineswept"
       component: "mineswept:exe:mineswept"
