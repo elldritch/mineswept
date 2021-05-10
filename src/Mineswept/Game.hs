@@ -9,6 +9,7 @@ where
 
 import Data.List.NonEmpty (NonEmpty (..), (<|))
 import Data.List.NonEmpty qualified as NE
+import Data.Maybe (fromJust)
 import Data.Time (UTCTime)
 import Mineswept.Frame (Action (..), Frame (..), Square (..), initialFrame, makeFrame)
 import Mineswept.Grid qualified as Grid
@@ -71,8 +72,9 @@ step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = d
       tile <- Minefield.get pos minefield
       revealed <- case tile of
         Mine -> Just [(pos, tile)]
-        -- FIXME: bug - never reveal flagged tiles, even when 0-adjacent
-        Hint _ -> Minefield.reveal pos minefield
+        Hint _ -> do
+          reveals <- Minefield.reveal pos minefield
+          return $ filter (\(p, _) -> fromJust (Grid.get p squares) /= Flagged) reveals
       Just $ foldr uncover squares revealed
 
     flag pos = Grid.set pos Flagged squares
