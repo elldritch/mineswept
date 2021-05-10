@@ -75,6 +75,7 @@ library
 
   -- cabal-fmt: expand src
   exposed-modules:
+    Mineswept.Frame
     Mineswept.Game
     Mineswept.Graph
     Mineswept.Grid
@@ -96,6 +97,7 @@ test-suite tests
 
   -- cabal-fmt: expand test -Spec
   other-modules:
+    Mineswept.FrameSpec
     Mineswept.GameSpec
     Mineswept.MinefieldSpec
 

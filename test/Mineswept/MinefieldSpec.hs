@@ -4,13 +4,23 @@ import Mineswept.Game (Parameters (..))
 import Mineswept.Grid (Grid)
 import Mineswept.Grid qualified as Grid
 import Mineswept.Minefield (Tile (..), gridOf, makeMinefield)
-import Test.Hspec (Spec, describe, it, shouldBe)
+import Test.Hspec (Spec, describe, it, pendingWith, shouldBe)
 
 spec :: Spec
 spec = do
   describe "makeMinefield" $ do
     it "deterministically constructs minefields given a seed" $ do
       gridOf (makeMinefield params) `shouldBe` minefieldGrid
+
+  describe "reveal" $ do
+    it "returns only one square when a mine is revealed" $ do
+      pendingWith "not yet implemented"
+
+    it "returns only one square when a hint is revealed" $ do
+      pendingWith "not yet implemented"
+
+    it "returns the zero-flood-fill and adjacent hints when a zero hint is revealed" $ do
+      pendingWith "not yet implemented"
 
 params :: Parameters
 params =
