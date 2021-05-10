@@ -9,6 +9,7 @@ module Mineswept.Frame
 where
 
 import Data.Foldable (find)
+import Data.List (intercalate)
 import Data.Maybe (isJust)
 import Data.Time (UTCTime)
 import Mineswept.Grid (Grid)
@@ -21,11 +22,21 @@ data Status
   | Lost
   deriving (Show)
 
+instance PShow Status where
+  pshow Playing = "P"
+  pshow Won = "W"
+  pshow Lost = "L"
+
 data Action
   = Start
   | Dig (Int, Int)
   | Flag (Int, Int)
   deriving (Eq, Show)
+
+instance PShow Action where
+  pshow Start = "S"
+  pshow (Dig (x, y)) = intercalate "\n" ["D", show x, show y]
+  pshow (Flag (x, y)) = intercalate "\n" ["S", show x, show y]
 
 data Square
   = Unrevealed
@@ -49,7 +60,7 @@ data Frame = Frame
 
 {- ORMOLU_DISABLE -}
 instance PShow Frame where
-  pshow Frame{..} =
+  pshow Frame {status, squares, lastMove, created} =
        "Turn {\n"
     ++ "  status: " ++ show status ++ "\n"
     ++ "  last move: " ++ show lastMove ++ "\n"

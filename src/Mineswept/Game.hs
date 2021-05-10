@@ -18,17 +18,14 @@ import Mineswept.Minefield (Minefield, Parameters (..), Tile (..), makeMinefield
 import Mineswept.Minefield qualified as Minefield
 
 data Game = Game
-  { width :: Int,
-    height :: Int,
-    seed :: Int,
-    version :: Int,
+  { parameters :: Parameters,
     minefield :: Minefield,
     frames :: NonEmpty Frame
   }
 
 {- ORMOLU_DISABLE -}
 instance PShow Game where
-  pshow Game {..} =
+  pshow Game {parameters = Parameters {width, height, seed, version}, minefield, frames} =
        "Game {\n"
     ++ "  width: " ++ show width ++ "\n"
     ++ "  height: " ++ show height ++ "\n"
@@ -44,13 +41,10 @@ instance PShow Game where
 {- ORMOLU_ENABLE -}
 
 initialGame :: Parameters -> UTCTime -> Game
-initialGame params@Parameters {width, height, seed} ts =
+initialGame parameters@Parameters {width, height} ts =
   Game
-    { width,
-      height,
-      seed,
-      version = 1,
-      minefield = makeMinefield params,
+    { parameters,
+      minefield = makeMinefield parameters,
       frames = initialFrame (width, height) ts :| []
     }
 

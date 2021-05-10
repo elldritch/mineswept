@@ -1,35 +1,39 @@
 module Main (main) where
 
-import Data.Maybe (fromJust)
-import Data.Time (getCurrentTime)
-import Mineswept.CLI (argparser)
-import Mineswept.Game (Action (..), Parameters (..), initialGame, step)
-import Mineswept.Internal.PShow (pshow)
+import Control.Monad (when)
+import Data.Fixed (Fixed (MkFixed))
+import Data.Text.IO.Utf8 qualified as Utf8
+import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import Main.Utf8 (withUtf8)
+import Mineswept.CLI (Command (..), NewGameParams (..), Position (..), argparser)
+import Mineswept.Encoding (currentVersion, encode)
+import Mineswept.Game (Parameters (..), initialGame)
 import Options.Applicative (execParser)
-
-params :: Parameters
-params =
-  Parameters
-    { width = 30,
-      height = 16,
-      version = 1,
-      mineCount = 99,
-      seed = 0
-    }
+import System.Exit (die)
 
 main :: IO ()
-main = do
-  args <- execParser argparser
-  ts <- getCurrentTime
-  putStrLn $ pshow $ play ts
-  where
-    play ts = fromJust $ do
-      let g1 = initialGame params ts
-      g2 <- step g1 (Flag (1, 1)) ts
-      g3 <- step g2 (Dig (0, 1)) ts
-      step g3 (Dig (2, 0)) ts
+main = withUtf8 $ do
+  cmd <- execParser argparser
+  now <- getCurrentTime
+  case cmd of
+    New NewGameParams {width, height, mineCount, guaranteedSolvable, filename} -> do
+      when guaranteedSolvable $ die "--guaranteed-solvable is not yet implemented"
 
-supportsVersion :: Parameters -> Bool
-supportsVersion Parameters {version} = case version of
-  1 -> True
-  _ -> False
+      let (MkFixed ts) = nominalDiffTimeToSeconds $ utcTimeToPOSIXSeconds now
+      let params =
+            Parameters
+              { width,
+                height,
+                mineCount,
+                seed = fromInteger ts,
+                version = currentVersion
+              }
+      let game = initialGame params now
+      Utf8.writeFile filename $ encode game
+      putStrLn $ "New game created at " <> filename
+    Dig filename Position {x, y} -> undefined
+    Flag filename Position {x, y} -> undefined
+    Check filename -> undefined
+    Suggest filename -> undefined
+    Reveal filename -> undefined

@@ -45,17 +45,20 @@ fromIndexedList (width, height) vs =
 instance PShow a => PShow (Grid a) where
   pshow (Grid gm _) = s
     where
-      indexOrder = sortOn (\((_, y), _) -> y) $ sortOn (\((x, _), _) -> x) $ GridMap.toList gm
+      indexOrder = sortPositionToRowOrder $ GridMap.toList gm
       shown = second pshow <$> indexOrder
-      rows = groupBy (\((_, b), _) ((_, d), _) -> b == d) shown
+      rows = groupBy (\((_, y1), _) ((_, y2), _) -> y1 == y2) shown
       tileRows = (fmap . fmap) snd rows
       rowLines = concat <$> tileRows
       outline = (\line -> "|" ++ line ++ "|") <$> rowLines
       edge = "+" ++ replicate (length $ head rows) '-' ++ "+\n"
       s = edge ++ intercalate "\n" outline ++ "\n" ++ edge
 
+sortPositionToRowOrder :: [((Int, Int), a)] -> [((Int, Int), a)]
+sortPositionToRowOrder = sortOn (\((_, y), _) -> y) . sortOn (\((x, _), _) -> x)
+
 elems :: Grid a -> [((Int, Int), a)]
-elems (Grid g _) = (\pos -> (pos, fromJust $ GridMap.lookup pos g)) <$> GridMap.keys g
+elems (Grid g _) = sortPositionToRowOrder $ (\pos -> (pos, fromJust $ GridMap.lookup pos g)) <$> GridMap.keys g
 
 get :: (Int, Int) -> Grid a -> Maybe a
 get pos (Grid g _) = GridMap.lookup pos g

@@ -55,7 +55,6 @@ common lang
     PolyKinds
     PostfixOperators
     RankNTypes
-    RecordWildCards
     ScopedTypeVariables
     StandaloneDeriving
     StandaloneKindSignatures
@@ -75,6 +74,7 @@ library
 
   -- cabal-fmt: expand src
   exposed-modules:
+    Mineswept.Encoding
     Mineswept.Frame
     Mineswept.Game
     Mineswept.Graph
@@ -88,6 +88,7 @@ library
     , grid            ^>=7.8.14
     , MonadRandom     ^>=0.5.3
     , random-shuffle  ^>=0.0.4
+    , text            ^>=1.2.4.1
     , time            ^>=1.11.1.2
 
 test-suite tests
@@ -97,6 +98,7 @@ test-suite tests
 
   -- cabal-fmt: expand test -Spec
   other-modules:
+    Mineswept.EncodingSpec
     Mineswept.FrameSpec
     Mineswept.GameSpec
     Mineswept.MinefieldSpec
@@ -105,6 +107,7 @@ test-suite tests
   build-depends:
     , hspec      ^>=2.7.10
     , mineswept
+    , text       ^>=1.2.4.1
     , time       ^>=1.11.1.2
 
 executable mineswept
@@ -119,3 +122,4 @@ executable mineswept
     , mineswept
     , optparse-applicative  ^>=0.16.1
     , time                  ^>=1.11.1.2
+    , with-utf8             ^>=1.0.2.2
