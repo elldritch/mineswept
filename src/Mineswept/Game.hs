@@ -25,10 +25,11 @@ data Game = Game
 
 {- ORMOLU_DISABLE -}
 instance PShow Game where
-  pshow Game {parameters = Parameters {width, height, seed, version}, minefield, frames} =
+  pshow Game {parameters = Parameters {width, height, seed, version, mineCount}, minefield, frames} =
        "Game {\n"
     ++ "  width: " ++ show width ++ "\n"
     ++ "  height: " ++ show height ++ "\n"
+    ++ "  mines: " ++ show mineCount ++ "\n"
     ++ "  seed: " ++ show seed ++ "\n"
     ++ "  version: " ++ show version ++ "\n"
     ++ "  minefield: {\n"
