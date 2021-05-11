@@ -6,7 +6,7 @@ module Mineswept.CLI
   )
 where
 
-import Control.Applicative ((<**>))
+import Control.Applicative (optional, (<**>))
 import Options.Applicative (argument, auto, help, hsubparser, long, metavar, option, short, str, strOption, value)
 import Options.Applicative.Builder (command, fullDesc, header, info, progDesc)
 import Options.Applicative.Extra (helper)
@@ -30,6 +30,7 @@ data NewGameParams = NewGameParams
   { width :: Int,
     height :: Int,
     mineCount :: Int,
+    seed :: Maybe Int,
     filename :: FilePath
   }
 
@@ -39,6 +40,7 @@ newGameParamsP =
     <$> option auto (long "width" <> short 'w' <> value 30 <> help "Width of puzzle")
     <*> option auto (long "height" <> short 'h' <> value 16 <> help "Height of puzzle")
     <*> option auto (long "mines" <> short 'm' <> value 99 <> help "Number of mines")
+    <*> optional (option auto (long "seed" <> short 's' <> help "PRNG seed"))
     <*> argument str (metavar "FILE" <> value "game.mines" <> help "Path to save puzzle file")
 
 data Command

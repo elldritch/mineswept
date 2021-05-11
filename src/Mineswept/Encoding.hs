@@ -7,8 +7,9 @@ where
 
 import Control.Applicative (some, (<|>))
 import Control.Applicative.Combinators.NonEmpty (someTill)
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, unless)
 import Data.List (groupBy, intercalate)
+import Data.List.NonEmpty qualified as NE
 import Data.Text (Text, pack)
 import Data.Time (UTCTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -26,8 +27,8 @@ import Text.Megaparsec.Char.Lexer (signed)
 currentVersion :: Int
 currentVersion = 1
 
-supportsVersion :: Parameters -> Bool
-supportsVersion Parameters {version}
+supportsVersion :: Int -> Bool
+supportsVersion version
   | version == currentVersion = True
   | otherwise = False
 
@@ -38,7 +39,7 @@ encode Game {parameters = Parameters {width, height, mineCount, seed, version}, 
     <> pack framesEncoded
   where
     paramsEncoded = unlines $ show <$> [version, width, height, mineCount, seed]
-    framesEncoded = concatMap encodeFrame frames
+    framesEncoded = concatMap encodeFrame $ NE.reverse frames
     encodeFrame Frame {status, lastMove, created, squares} =
       intercalate "\n" [pshow status, pshow lastMove, show $ encodeTime created, encodeSquares squares]
         ++ "\n\n"
@@ -61,6 +62,7 @@ decode filepath msg = case runParser parser filepath msg of
     parser = do
       -- Parse game parameters.
       version <- natL
+      unless (supportsVersion version) $ fail "unsupported version"
       width <- natL
       height <- natL
       mineCount <- natL
@@ -68,7 +70,7 @@ decode filepath msg = case runParser parser filepath msg of
       _ <- newline
 
       -- Parse frames.
-      frames <- someTill (frame (width, height)) eof
+      frames <- NE.reverse <$> someTill (frame (width, height)) eof
 
       let params = Parameters {version, width, height, mineCount, seed}
       return

@@ -103,7 +103,9 @@ test-suite tests
     Mineswept.EncodingSpec
     Mineswept.FrameSpec
     Mineswept.GameSpec
+    Mineswept.GridSpec
     Mineswept.MinefieldSpec
+    Mineswept.Spec.Util
 
   hs-source-dirs: test
   build-depends:

@@ -19,7 +19,7 @@ import Math.Geometry.Grid.Octagonal (RectOctGrid, rectOctGrid)
 import Math.Geometry.Grid.Square (RectSquareGrid, rectSquareGrid)
 import Math.Geometry.GridMap (toGrid)
 import Math.Geometry.GridMap qualified as GridMap
-import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap, lazyGridMapIndexed)
+import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMapIndexed)
 import Mineswept.Internal.PShow (PShow (..))
 
 data Grid a = Grid
@@ -30,10 +30,9 @@ data Grid a = Grid
 
 fromList :: (Int, Int) -> [v] -> Grid v
 fromList (width, height) vs =
-  Grid
-    { squareGrid = lazyGridMap (rectSquareGrid height width) vs,
-      octGrid = lazyGridMap (rectOctGrid height width) vs
-    }
+  fromIndexedList (width, height) $ zip is vs
+  where
+    is = [(x, y) | y <- [0 .. height -1], x <- [0 .. width -1]]
 
 fromIndexedList :: (Int, Int) -> [((Int, Int), v)] -> Grid v
 fromIndexedList (width, height) vs =

@@ -49,14 +49,18 @@ initialGame parameters@Parameters {width, height} ts =
       frames = initialFrame (width, height) ts :| []
     }
 
-step :: Game -> Action -> UTCTime -> Maybe Game
+step :: Game -> Action -> UTCTime -> Either String Game
 step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = do
   nextGrid <- makeNextGrid
-  Just $ game {frames = makeFrame nextGrid action ts <| frames}
+  Right $ game {frames = makeFrame nextGrid action ts <| frames}
   where
+    maybeToEither l m = case m of
+      Just r -> pure r
+      Nothing -> Left l
+
     makeNextGrid = case action of
       Dig pos -> dig pos
-      Flag pos -> Just $ flag pos
+      Flag pos -> pure $ flag pos
       Start -> error "step: impossible: Start is an invalid step action"
 
     uncover (p, tile) grid = case tile of
@@ -64,12 +68,12 @@ step game@Game {frames = frames@(Frame {squares} :| _), minefield} action ts = d
       Hint h -> Grid.set p (Revealed h) grid
 
     dig pos = do
-      tile <- Minefield.get pos minefield
+      tile <- maybeToEither ("invalid position: " <> show pos) $ Minefield.get pos minefield
       revealed <- case tile of
-        Mine -> Just [(pos, tile)]
+        Mine -> pure [(pos, tile)]
         Hint _ -> do
-          reveals <- Minefield.reveal pos minefield
+          reveals <- maybeToEither ("invalid position" <> show pos) $ Minefield.reveal pos minefield
           return $ filter (\(p, _) -> fromJust (Grid.get p squares) /= Flagged) reveals
-      Just $ foldr uncover squares revealed
+      pure $ foldr uncover squares revealed
 
     flag pos = Grid.set pos Flagged squares

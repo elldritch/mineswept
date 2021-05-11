@@ -4,16 +4,27 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Mineswept.Encoding (encode)
-import Mineswept.Game (Parameters (..), initialGame)
+import Mineswept.Frame (Square (..))
+import Mineswept.Game (Action (..), Parameters (..), initialGame)
+import Mineswept.Internal.PShow (pshow)
+import Mineswept.Spec.Util (decode', squareAt, step')
 import Test.Hspec (Spec, describe, it, shouldBe)
 
 spec :: Spec
 spec = do
+  let ts = posixSecondsToUTCTime 0
+  let g1 = initialGame params ts
+
   describe "encode" $ do
     it "encodes initial games" $ do
-      let ts = posixSecondsToUTCTime 1620612700
-      let game = initialGame params ts
-      encode game `shouldBe` encodedInitial
+      encode g1 `shouldBe` encodedInitial
+
+    it "is the inverse of decode" $ do
+      let g2 = step' g1 (Dig (1, 0)) ts
+      let encoded_g2 = encode g2
+      let decoded_g2 = decode' encoded_g2
+      putStrLn $ pshow decoded_g2
+      squareAt decoded_g2 (1, 0) `shouldBe` Revealed 1
 
 params :: Parameters
 params =
@@ -36,7 +47,7 @@ encodedInitial =
       "",
       "P",
       "S",
-      "1620612700",
+      "0",
       "??????????????????????????????",
       "??????????????????????????????",
       "??????????????????????????????",
