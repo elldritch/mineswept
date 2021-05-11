@@ -36,7 +36,7 @@ data Action
 instance PShow Action where
   pshow Start = "S"
   pshow (Dig (x, y)) = intercalate "\n" ["D", show x, show y]
-  pshow (Flag (x, y)) = intercalate "\n" ["S", show x, show y]
+  pshow (Flag (x, y)) = intercalate "\n" ["F", show x, show y]
 
 data Square
   = Unrevealed

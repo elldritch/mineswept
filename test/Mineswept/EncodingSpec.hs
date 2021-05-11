@@ -6,7 +6,6 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Mineswept.Encoding (encode)
 import Mineswept.Frame (Square (..))
 import Mineswept.Game (Action (..), Parameters (..), initialGame)
-import Mineswept.Internal.PShow (pshow)
 import Mineswept.Spec.Util (decode', squareAt, step')
 import Test.Hspec (Spec, describe, it, shouldBe)
 
@@ -19,12 +18,18 @@ spec = do
     it "encodes initial games" $ do
       encode g1 `shouldBe` encodedInitial
 
+    -- TODO: Make a "encoded step" monad?
     it "is the inverse of decode" $ do
       let g2 = step' g1 (Dig (1, 0)) ts
       let encoded_g2 = encode g2
       let decoded_g2 = decode' encoded_g2
-      putStrLn $ pshow decoded_g2
-      squareAt decoded_g2 (1, 0) `shouldBe` Revealed 1
+      let g3 = step' decoded_g2 (Flag (2, 0)) ts
+      let encoded_g3 = encode g3
+      let decoded_g3 = decode' encoded_g3
+      let g4 = step' decoded_g3 (Dig (2, 8)) ts
+      let encoded_g4 = encode g4
+      let decoded_g4 = decode' encoded_g4
+      squareAt decoded_g4 (1, 0) `shouldBe` Revealed 1
 
 params :: Parameters
 params =

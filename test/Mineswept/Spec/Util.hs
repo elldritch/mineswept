@@ -6,7 +6,6 @@ module Mineswept.Spec.Util
   )
 where
 
-import Data.Either (fromRight)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
@@ -17,10 +16,14 @@ import Mineswept.Game (Action, Game (..), step)
 import Mineswept.Grid qualified as Grid
 
 step' :: Game -> Action -> UTCTime -> Game
-step' game action ts = fromRight (error "impossible: valid test moves") $ step game action ts
+step' game action ts = case step game action ts of
+  Right g -> g
+  Left err -> error $ "step': invalid action: " <> err
 
 decode' :: Text -> Game
-decode' msg = fromRight (error "impossible: valid test moves") $ decode "test" msg
+decode' msg = case decode "test" msg of
+  Right g -> g
+  Left err -> error $ "decode': invalid decode: " <> err
 
 squareAt :: Game -> (Int, Int) -> Square
 squareAt Game {frames = Frame {squares} :| _} pos = fromJust $ Grid.get pos squares
