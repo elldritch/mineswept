@@ -2,20 +2,18 @@ cabal-version:      3.0
 name:               mineswept
 version:            0.1.0.0
 
--- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
-
--- A URL where users can report bugs.
--- bug-reports:
+synopsis:           A runner for Minesweeper.
+description:        A CLI and library for playing Minesweeper games saved to an easy-to-parse text format.
 
 license:            Apache-2.0
+copyright:          (c) 2021 Leo Zhang
+
 author:             Leo Zhang
 maintainer:         leo@leozhang.me
-copyright:          (c) 2021 Leo Zhang
+bug-reports:        https://github.com/liftM/mineswept/issues
+
 category:           Game
+
 extra-source-files:
   CHANGELOG.md
   README.md
